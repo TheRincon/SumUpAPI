@@ -1,0 +1,30 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: postgres://bank:bank@db:5432/bank?sslmode=disable
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: bank
+      POSTGRES_PASSWORD: bank
+      POSTGRES_DB: bank
+    volumes:
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      # TCP on purpose: during first-run setup Postgres answers only on its
+      # Unix socket, before schema.sql has been applied.
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "bank", "-d", "bank"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  pgdata:

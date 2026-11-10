@@ -1,0 +1,42 @@
+name: sumup-api-test
+
+services:
+  test:
+    image: golang:1.27
+    working_dir: /src
+    command:
+      - go
+      - run
+      - gotest.tools/gotestsum@v1.13.0
+      - --format=testdox
+      - --post-run-command=sh -c 'go tool cover -html=/coverage/coverage.out -o /coverage/coverage.html && go tool cover -func=/coverage/coverage.out | tail -1'
+      - --
+      - -race
+      - -count=1
+      - -coverpkg=./...
+      - -coverprofile=/coverage/coverage.out
+      - ./...
+    environment:
+      DATABASE_URL: postgres://bank:bank@db:5432/bank?sslmode=disable
+    volumes:
+      - .:/src:ro
+      - ./coverage:/coverage
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: bank
+      POSTGRES_PASSWORD: bank
+      POSTGRES_DB: bank
+    tmpfs:
+      - /var/lib/postgresql
+    volumes:
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "bank", "-d", "bank"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
