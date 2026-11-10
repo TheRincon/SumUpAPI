@@ -88,6 +88,13 @@ curl -s localhost:8080/accounts/$B/ledger | jq
 # }
 ```
 
+### Postman or Bruno
+
+Import `SumUp-API.postman_collection.json` into either tool. With the stack
+running, run the collection in order: `Happy Path` creates the accounts that
+`Error Cases` uses. Every request asserts on its response, and each run generates
+new ID numbers, so it can be run repeatedly.
+
 ## API
 
 Amounts are integers in the currency's minor unit, so `1050` means 10.50. An

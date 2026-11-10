@@ -1,0 +1,884 @@
+{
+  "info": {
+    "name": "SumUp-API",
+    "description": "Run the folders in order against a running stack (docker compose up --build). Error Cases reuses the accounts created by Happy Path.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Happy Path",
+      "item": [
+        {
+          "name": "Create account A with a balance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts"
+              ]
+            },
+            "description": "Generates a new ID number on every send, so it can be sent repeatedly.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ada Lovelace\",\n  \"address\": \"12 St James Square, London\",\n  \"date_of_birth\": \"1985-12-10\",\n  \"id_number\": \"{{idNumberA}}\",\n  \"initial_balance\": 1000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"idNumberA\", Math.random().toString(36).slice(2, 14).toUpperCase() + Math.random().toString(36).slice(2, 14).toUpperCase());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", function () { pm.response.to.have.status(201); });",
+                  "var body = pm.response.json();",
+                  "pm.collectionVariables.set(\"accountA\", body.id);",
+                  "pm.test(\"balance is 1000\", function () { pm.expect(body.balance === 1000).to.eql(true); });",
+                  "pm.test(\"holder details are not returned\", function () { pm.expect(body.name === undefined).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create account B with zero balance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts"
+              ]
+            },
+            "description": "initial_balance is optional and defaults to zero.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Alan Turing\",\n  \"address\": \"78 High Street, Hampton\",\n  \"date_of_birth\": \"1990-06-23\",\n  \"id_number\": \"{{idNumberB}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"idNumberB\", Math.random().toString(36).slice(2, 14).toUpperCase() + Math.random().toString(36).slice(2, 14).toUpperCase());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", function () { pm.response.to.have.status(201); });",
+                  "var body = pm.response.json();",
+                  "pm.collectionVariables.set(\"accountB\", body.id);",
+                  "pm.test(\"balance is 0\", function () { pm.expect(body.balance === 0).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get account A",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/accounts/{{accountA}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts",
+                "{{accountA}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"balance is 1000\", function () { pm.expect(pm.response.json().balance === 1000).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deposit into account B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounts/{{accountB}}/deposits",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts",
+                "{{accountB}}",
+                "deposits"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 250\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"balance is 250\", function () { pm.expect(pm.response.json().balance === 250).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Transfer from A to B",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transfers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transfers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{accountA}}\",\n  \"to\": \"{{accountB}}\",\n  \"amount\": 400\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });",
+                  "var body = pm.response.json();",
+                  "pm.test(\"source balance is 600\", function () { pm.expect(body.from.balance === 600).to.eql(true); });",
+                  "pm.test(\"destination balance is 650\", function () { pm.expect(body.to.balance === 650).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get ledger of account B",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/accounts/{{accountB}}/ledger",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts",
+                "{{accountB}}",
+                "ledger"
+              ]
+            },
+            "description": "Up to 100 entries, newest first. Positive amounts are money in."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });",
+                  "var entries = pm.response.json().entries;",
+                  "pm.collectionVariables.set(\"newestEntryId\", entries[0].id);",
+                  "pm.test(\"has two entries\", function () { pm.expect(entries.length === 2).to.eql(true); });",
+                  "pm.test(\"newest is the transfer\", function () { pm.expect(entries[0].type === \"transfer\" && entries[0].amount === 400 && entries[0].balance_after === 650).to.eql(true); });",
+                  "pm.test(\"older is the deposit\", function () { pm.expect(entries[1].type === \"deposit\" && entries[1].balance_after === 250).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get older ledger entries",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/accounts/{{accountB}}/ledger?before={{newestEntryId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts",
+                "{{accountB}}",
+                "ledger"
+              ],
+              "query": [
+                {
+                  "key": "before",
+                  "value": "{{newestEntryId}}"
+                }
+              ]
+            },
+            "description": "Pass next_before from a previous page as before to fetch the next page."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });",
+                  "var entries = pm.response.json().entries;",
+                  "pm.test(\"returns only the older entry\", function () { pm.expect(entries.length === 1 && entries[0].type === \"deposit\").to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Error Cases",
+      "item": [
+        {
+          "name": "Create account with missing details",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"initial_balance\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"error message\", function () { pm.expect(pm.response.json().error).to.eql(\"invalid account holder: name is required\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create account with invalid date of birth",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ada Lovelace\",\n  \"address\": \"12 St James Square, London\",\n  \"date_of_birth\": \"10/12/1985\",\n  \"id_number\": \"{{idNumberA}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"error message\", function () { pm.expect(pm.response.json().error).to.eql(\"malformed request body: invalid field /date_of_birth\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create account with a used ID number",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ada Lovelace\",\n  \"address\": \"12 St James Square, London\",\n  \"date_of_birth\": \"1985-12-10\",\n  \"id_number\": \"{{idNumberA}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 409\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"error message\", function () { pm.expect(pm.response.json().error).to.eql(\"an account already exists for this ID number\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create account for a similar holder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts"
+              ]
+            },
+            "description": "Same date of birth, with the name and ID number each within 3 edits.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ada Lovelacf\",\n  \"address\": \"12 St James Square, London\",\n  \"date_of_birth\": \"1985-12-10\",\n  \"id_number\": \"{{idNumberA}}Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 409\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"error message\", function () { pm.expect(pm.response.json().error).to.eql(\"an account already exists for a similar holder\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get unknown account",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/accounts/does-not-exist",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts",
+                "does-not-exist"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 404\", function () { pm.response.to.have.status(404); });",
+                  "pm.test(\"error message\", function () { pm.expect(pm.response.json().error).to.eql(\"account not found\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deposit zero",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounts/{{accountB}}/deposits",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts",
+                "{{accountB}}",
+                "deposits"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"error message\", function () { pm.expect(pm.response.json().error).to.eql(\"amount must be positive\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deposit a fractional amount",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounts/{{accountB}}/deposits",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts",
+                "{{accountB}}",
+                "deposits"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 10.5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"error message\", function () { pm.expect(pm.response.json().error).to.eql(\"malformed request body: invalid field /amount\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deposit into unknown account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/accounts/does-not-exist/deposits",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts",
+                "does-not-exist",
+                "deposits"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 404\", function () { pm.response.to.have.status(404); });",
+                  "pm.test(\"error message\", function () { pm.expect(pm.response.json().error).to.eql(\"account not found\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Transfer more than the balance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transfers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transfers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{accountA}}\",\n  \"to\": \"{{accountB}}\",\n  \"amount\": 999999\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 409\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"error message\", function () { pm.expect(pm.response.json().error).to.eql(\"insufficient funds\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Transfer to the same account",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transfers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transfers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"from\": \"{{accountA}}\",\n  \"to\": \"{{accountA}}\",\n  \"amount\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"error message\", function () { pm.expect(pm.response.json().error).to.eql(\"source and destination accounts must differ\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Transfer without accounts",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/transfers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transfers"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"error message\", function () { pm.expect(pm.response.json().error).to.eql(\"from and to are required\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get ledger with invalid cursor",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/accounts/{{accountB}}/ledger?before=abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "accounts",
+                "{{accountB}}",
+                "ledger"
+              ],
+              "query": [
+                {
+                  "key": "before",
+                  "value": "abc"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"error message\", function () { pm.expect(pm.response.json().error).to.eql(\"before must be a positive integer\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Use an unsupported method",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/transfers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transfers"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 405\", function () { pm.response.to.have.status(405); });",
+                  "pm.test(\"error message\", function () { pm.expect(pm.response.json().error).to.eql(\"Method Not Allowed\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "accountA",
+      "value": ""
+    },
+    {
+      "key": "accountB",
+      "value": ""
+    },
+    {
+      "key": "idNumberA",
+      "value": ""
+    },
+    {
+      "key": "idNumberB",
+      "value": ""
+    },
+    {
+      "key": "newestEntryId",
+      "value": ""
+    }
+  ]
+}

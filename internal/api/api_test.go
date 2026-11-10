@@ -128,6 +128,31 @@ func TestEmptyLedgerIsAnEmptyList(t *testing.T) {
 	}
 }
 
+func TestLedgerBeforeReturnsOlderEntries(t *testing.T) {
+	h := newTestHandler(t)
+	account := createAccount(t, h, 100)
+	path := "/accounts/" + account.ID + "/ledger"
+
+	var deposited accountResponse
+	if status := send(t, h, http.MethodPost, "/accounts/"+account.ID+"/deposits", `{"amount": 50}`, &deposited); status != http.StatusOK {
+		t.Fatalf("deposit status = %d, want %d", status, http.StatusOK)
+	}
+
+	var all ledgerResponse
+	if status := send(t, h, http.MethodGet, path, "", &all); status != http.StatusOK || len(all.Entries) != 2 {
+		t.Fatalf("ledger = %d with %d entries, want %d with 2", status, len(all.Entries), http.StatusOK)
+	}
+
+	var older ledgerResponse
+	status := send(t, h, http.MethodGet, fmt.Sprintf("%s?before=%d", path, all.Entries[0].ID), "", &older)
+	if status != http.StatusOK {
+		t.Fatalf("older page status = %d, want %d", status, http.StatusOK)
+	}
+	if len(older.Entries) != 1 || older.Entries[0].ID != all.Entries[1].ID {
+		t.Errorf("older page = %+v, want only entry %d", older.Entries, all.Entries[1].ID)
+	}
+}
+
 func TestResponsesDoNotExposeHolderDetails(t *testing.T) {
 	h := newTestHandler(t)
 	idNumber := fmt.Sprintf("PRIVATE%d", rand.Uint64())
@@ -255,6 +280,7 @@ func TestErrorResponses(t *testing.T) {
 		{"deposit negative", post, deposits, `{"amount": -5}`, 400, "amount must be positive"},
 		{"deposit unknown account", post, "/accounts/missing/deposits", `{"amount": 1}`, 404, "account not found"},
 		{"deposit to invalid ID", post, "/accounts/%00/deposits", `{"amount": 1}`, 404, "account not found"},
+		{"transfer malformed body", post, "/transfers", `{"from":`, 400, "malformed request body"},
 		{"transfer empty object", post, "/transfers", `{}`, 400, "from and to are required"},
 		{"transfer missing destination", post, "/transfers", `{"from": "` + funded + `", "amount": 1}`, 400, "from and to are required"},
 		{"transfer missing amount", post, "/transfers", `{"from": "` + funded + `", "to": "` + empty + `"}`, 400, "amount must be positive"},
