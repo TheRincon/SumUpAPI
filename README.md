@@ -7,8 +7,16 @@ in Go 1.27, uses PostgreSQL, and has one direct dependency, the
 
 ## Functional Requirements
 
- - Account creation requires name, address, date_of_birth (YYYY-MM-DD) and id_number. `initial_balance` is optional.
- - Simple ledger system for auditing and system state. 
+ - Account creation requires name, address, date_of_birth (YYYY-MM-DD), and id_number. `initial_balance` is optional.
+ - Allow deposits to be made. 
+ - Transfers between accounts so the API is useable for customers/users.
+ - Simple ledger system for auditing and system state.
+
+## Non-functional Requirements
+
+ - Focus on Consistency and correctness for this section of the Bank API.
+ - Availability is nice, but probably less important than missing money or overdrafts, redundant txns.
+ - If high throughput is needed, there are ways to balance. (Sub-accounts, pinning resources on "hot" accounts, etc). 
 
 ## Quick start
 
